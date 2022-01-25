@@ -9,6 +9,9 @@ import android.widget.Toast;
 
 import androidx.annotation.Nullable;
 
+import java.math.BigDecimal;
+import java.sql.Blob;
+
 class MyDatabaseHelper extends SQLiteOpenHelper {
     private Context context;
     private static final String DATABASE_NAME = "Locations.db";
@@ -30,8 +33,8 @@ class MyDatabaseHelper extends SQLiteOpenHelper {
                 " (" + COLUMN_ID + " INTEGER PRIMARY KEY, " +
                 COLUMN_IMG + " INTEGER, " +
                 COLUMN_ADDRESS + " TEXT, " +
-                COLUMN_LAT + " DOUBLE, " +
-                COLUMN_LONGIT + " DOUBLE);";
+                COLUMN_LAT + " TEXT, " +
+                COLUMN_LONGIT + " TEXT);";
         db.execSQL(query);
     }
 
@@ -41,7 +44,7 @@ class MyDatabaseHelper extends SQLiteOpenHelper {
         onCreate(db);
     }
 
-    void addLocation(int id, int img, String address, double lat, double longit) {
+    void addLocation(int id, int img, String address, String lat, String longit) {
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues cv = new ContentValues();
 
@@ -51,12 +54,7 @@ class MyDatabaseHelper extends SQLiteOpenHelper {
         cv.put(COLUMN_LAT, lat);
         cv.put(COLUMN_LONGIT, longit);
         long result = db.insert(TABLE_NAME, null, cv);
-        /*if( result == -1 ) {
-            Toast.makeText(context, "Failed", Toast.LENGTH_SHORT).show();
-        } else {
-            Toast.makeText(context, "Added Successfully!", Toast.LENGTH_SHORT).show();
 
-        }*/
     }
     Cursor readAllData(){
         String query = "SELECT * FROM " + TABLE_NAME;
@@ -71,43 +69,11 @@ class MyDatabaseHelper extends SQLiteOpenHelper {
 
     Cursor getLocation(int id) {
         SQLiteDatabase db = this.getWritableDatabase();
-        Location loc = null;
         //Cursor cursor = db.rawQuery("SELECT * FROM my_locations WHERE id=1", null);
         Cursor cursor = db.rawQuery("SELECT * FROM " + TABLE_NAME + " WHERE " + COLUMN_ID + "=?", new String[] {String.valueOf(id)} );
 
             //loc = new Location(cursor.getInt(0), cursor.getInt(1), cursor.getString(2), cursor.getLong(3), cursor.getLong(4));
 
         return cursor;
-    }
-
-    /*void updateData(String row_id, String title, String author, String pages){
-        SQLiteDatabase db = this.getWritableDatabase();
-        ContentValues cv = new ContentValues();
-        cv.put(COLUMN_TITLE, title);
-        cv.put(COLUMN_AUTHOR, author);
-        cv.put(COLUMN_PAGES, pages);
-
-        long result = db.update(TABLE_NAME, cv, "_id=?", new String[]{row_id});
-        if(result == -1){
-            Toast.makeText(context, "Failed", Toast.LENGTH_SHORT).show();
-        }else {
-            Toast.makeText(context, "Updated Successfully!", Toast.LENGTH_SHORT).show();
-        }
-
-    }
-
-    void deleteOneRow(String row_id){
-        SQLiteDatabase db = this.getWritableDatabase();
-        long result = db.delete(TABLE_NAME, "_id=?", new String[]{row_id});
-        if(result == -1){
-            Toast.makeText(context, "Failed to Delete.", Toast.LENGTH_SHORT).show();
-        }else{
-            Toast.makeText(context, "Successfully Deleted.", Toast.LENGTH_SHORT).show();
-        }
-    }*/
-
-    void deleteAllData(){
-        SQLiteDatabase db = this.getWritableDatabase();
-        db.execSQL("DELETE FROM " + TABLE_NAME);
     }
 }

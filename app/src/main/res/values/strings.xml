@@ -1,4 +1,8 @@
 <resources>
-    <string name="app_name">test</string>
+    <string name="app_name">GeoMaroc</string>
     <string name="title_activity_maps">MapsActivity</string>
+    <string name="start_game">Start Game</string>
+    <string name="change_language">Change Language</string>
+    <string name="guess_the_place">Guess the place !</string>
+    <string name="show_the_map">Show the map </string>
 </resources>

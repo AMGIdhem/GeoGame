@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">GeoMaroc</string>
+    <string name="start_game">Commencer A Jouer</string>
+    <string name="title_activity_maps">title_activity_maps</string>
+    <string name="change_language">Changer la langue</string>
+    <string name="guess_the_place"> Devinez l\'endroit !</string>
+    <string name="show_the_map">Montrer la map </string>
+</resources>

@@ -8,7 +8,9 @@ import androidx.fragment.app.FragmentActivity;
 
 import android.Manifest;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.database.Cursor;
 import android.location.Address;
 import android.location.Geocoder;
 import android.location.Location;
@@ -17,6 +19,7 @@ import com.google.android.gms.location.LocationListener;
 
 import android.os.Build;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.Toast;
@@ -37,26 +40,25 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.example.test.databinding.ActivityMapsBinding;
+import com.google.android.gms.maps.model.Polyline;
+import com.google.android.gms.maps.model.PolylineOptions;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.StringTokenizer;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback,
-        GoogleApiClient.ConnectionCallbacks,
-        GoogleApiClient.OnConnectionFailedListener,
-        LocationListener,
         GoogleMap.OnMarkerClickListener,
         GoogleMap.OnMarkerDragListener,
+        GoogleMap.OnMapClickListener,
         View.OnClickListener {
 
+    MyDatabaseHelper myDB = new MyDatabaseHelper(this);
     private GoogleMap mMap;
-    private GoogleApiClient client;
-    private LocationRequest locationRequest;
-    private Location lastLocation;
-    private Marker currentLocationMarker;
-    public final static int REQUEST_LOCATION_CODE = 99;
-    double latitude, longitude;
     double end_latitude, end_longitude;
+    public static final String SHARED_PREFS = "SharedPrefs";
+    Polyline polyline;
 
 
     @Override
@@ -64,95 +66,57 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_maps);
 
-        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            checkLocationPermission();
-        }
-        // Obtain the SupportMapFragment and get notified when the map is ready to be used.
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
     }
 
     @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        switch (requestCode) {
-            case REQUEST_LOCATION_CODE:
-                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-                        if (client == null) {
-                            buildGoogleApiClient();
-                        }
-                        mMap.setMyLocationEnabled(true);
-                    } else {
-                        Toast.makeText(this, "Permission Denied!", Toast.LENGTH_LONG).show();
-                    }
-                    return;
-                }
-        }
-    }
-
-    /**
-     * Manipulates the map once available.
-     * This callback is triggered when the map is ready to be used.
-     * This is where we can add markers or lines, add listeners or move the camera. In this case,
-     * we just add a marker near Sydney, Australia.
-     * If Google Play services is not installed on the device, the user will be prompted to install
-     * it inside the SupportMapFragment. This method will only be triggered once the user has
-     * installed Google Play services and returned to the app.
-     */
-    @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
+        LatLng morocco = new LatLng(31.699069, -7.877584);
+        LatLng tiznit = new LatLng(29.696063, -9.727137);
+        List<LatLng> latLngList = new ArrayList<>();
+        latLngList.add(morocco);
+        latLngList.add(tiznit);
+        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(morocco, 6));
+        mMap.addMarker(new MarkerOptions().position(morocco).title("Morocco"));
+        mMap.addMarker(new MarkerOptions().position(tiznit).title("Tiznit"));
 
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
 
-            buildGoogleApiClient();
-            mMap.setMyLocationEnabled(true);
-        }
-
+        if (polyline != null) polyline.remove();
+        PolylineOptions polylineOptions = new PolylineOptions().addAll(latLngList).clickable(true);
+        polyline = mMap.addPolyline(polylineOptions);
 
         mMap.setOnMarkerDragListener(this);
         mMap.setOnMarkerClickListener(this);
+        mMap.setOnMapClickListener((GoogleMap.OnMapClickListener) this);
 
     }
 
     public void onClick(View v) {
-        if(v.getId() == R.id.B_search) {
-            Toast.makeText(getApplicationContext(),
-                    "This a toast message",
-                    Toast.LENGTH_LONG);
-            EditText tf_location = (EditText) findViewById(R.id.TF_location);
-            String location = tf_location.getText().toString();
-            List<Address> addressList = null;
-            MarkerOptions mo = new MarkerOptions();
-
-            if( !location.equals("")) {
-                Geocoder geocoder = new Geocoder(this);
-                try {
-                    addressList = geocoder.getFromLocationName(location, 5);
-                } catch(IOException e) {
-                    e.printStackTrace();
-                }
-
-                for(int i=0; i<addressList.size(); i++) {
-                    Address myAddress = addressList.get(i);
-                    LatLng latlng = new LatLng(myAddress.getLatitude(), myAddress.getLongitude());
-                    mo.position(latlng);
-                    mo.title("Your search result");
-                    mMap.addMarker(mo);
-                    mMap.animateCamera(CameraUpdateFactory.newLatLng(latlng));
-                }
-
+        if(v.getId() == R.id.B_to) {
+            SharedPreferences sharedPreferences = getSharedPreferences(SHARED_PREFS, MODE_PRIVATE);
+            int number = sharedPreferences.getInt("img", -1);
+            String savedRandomNumbers = sharedPreferences.getString("randomNumbers", "");
+            StringTokenizer st = new StringTokenizer(savedRandomNumbers, ",");
+            int[] randomNumbers = new int[7];
+            for (int i = 0; i < 7; i++) {
+                randomNumbers[i] = Integer.parseInt(st.nextToken());
             }
+            Cursor cursor = myDB.getLocation(randomNumbers[number]);
+            cursor.moveToNext();
+            double latitude = Double.parseDouble(cursor.getString(3));
+            double longitude = Double.parseDouble(cursor.getString(4));
+            Log.i("MapsActivity", "LAT = " + cursor.getString(3));
 
-        }
-        else if(v.getId() == R.id.B_to) {
             mMap.clear();
             MarkerOptions markerOptions = new MarkerOptions();
             markerOptions.position(new LatLng(end_latitude, end_longitude));
             markerOptions.title("Destination");
             float results[] = new float[10];
+
+
             Location.distanceBetween(latitude, longitude, end_latitude, end_longitude, results);
             markerOptions.snippet("Distance = "+ results[0]/1000);
             mMap.addMarker(markerOptions);
@@ -162,84 +126,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             startActivity(intent);
         }
 
-
-    }
-
-    protected synchronized void buildGoogleApiClient() {
-        client = new GoogleApiClient.Builder(this)
-                .addConnectionCallbacks(this)
-                .addOnConnectionFailedListener(this)
-                .addApi(LocationServices.API)
-                .build();
-        client.connect();
-
-    }
-
-    @Override
-    public void onLocationChanged(@NonNull Location location) {
-        lastLocation = location;
-
-        if(currentLocationMarker != null) {
-            currentLocationMarker.remove();
-        }
-
-        LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
-        latitude = 30.362188;
-        longitude = -9.542420;
-
-        MarkerOptions markerOptions = new MarkerOptions();
-        markerOptions.position(latLng);
-        markerOptions.title("Current Location");
-        markerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE));
-
-        currentLocationMarker = mMap.addMarker(markerOptions);
-
-        mMap.moveCamera(CameraUpdateFactory.newLatLng(latLng));
-        mMap.animateCamera(CameraUpdateFactory.zoomBy(10));
-
-        if(client != null) {
-            LocationServices.FusedLocationApi.removeLocationUpdates(client, this);
-        }
-
-    }
-
-
-    @Override
-    public void onConnected(@Nullable Bundle bundle) {
-        locationRequest = new LocationRequest();
-
-        locationRequest.setInterval(1000);
-        locationRequest.setFastestInterval(1000);
-        locationRequest.setPriority(LocationRequest.PRIORITY_BALANCED_POWER_ACCURACY);
-
-        if(ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-            LocationServices.FusedLocationApi.requestLocationUpdates(client, locationRequest, this);
-        }
-
-    }
-
-    public boolean checkLocationPermission() {
-        if(ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            if(ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.ACCESS_FINE_LOCATION)) {
-                ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, REQUEST_LOCATION_CODE);
-            }
-            else {
-                ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, REQUEST_LOCATION_CODE);
-
-            }
-            return false;
-        }
-        else
-            return true;
-    }
-
-    @Override
-    public void onConnectionSuspended(int i) {
-
-    }
-
-    @Override
-    public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
 
     }
 
@@ -271,5 +157,14 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         super.onBackPressed();
         startActivity(new Intent(this, MainActivity.class));
         finish();
+    }
+
+
+    @Override
+    public void onMapClick(@NonNull LatLng latLng) {
+        mMap.clear();
+        mMap.addMarker(new MarkerOptions().position(latLng).title("You clicked here"));
+        end_latitude = latLng.latitude;
+        end_longitude = latLng.longitude;
     }
 }

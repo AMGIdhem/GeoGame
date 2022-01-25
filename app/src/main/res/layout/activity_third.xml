@@ -20,12 +20,16 @@
 
     <Button
         android:id="@+id/B_pagain"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="250dp"
+        android:layout_height="60dp"
         android:layout_marginBottom="276dp"
-        android:text="Play again !"
+        android:text="Next Round"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.498"
-        app:layout_constraintStart_toStartOf="parent" />
+        app:layout_constraintStart_toStartOf="parent"
+        android:textSize="20sp"
+        android:textColor="#FFFFFF"
+        android:background="@drawable/custom_button"
+        android:textAllCaps="false"/>
 </androidx.constraintlayout.widget.ConstraintLayout>
